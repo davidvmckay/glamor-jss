@@ -1,5 +1,5 @@
-import { transform as babelTransform } from 'babel-core'
-import hoist from './hoist'
+import { transform as babelTransform } from 'esbuild';
+import hoist from '../src/hoist';
 
 const transform = src => babelTransform(src, { plugins: [hoist] }).code
 

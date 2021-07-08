@@ -1,5 +1,5 @@
-import css, { renderToString, reset } from './index'
-import Manager, { MAX_RULES } from './Manager'
+import css, { renderToString, reset } from '../src/index'
+import Manager, { MAX_RULES } from '../src/Manager'
 
 describe('css', () => {
   beforeEach(reset)

@@ -1,6 +1,6 @@
 const PACKAGE_NAME = 'glamor-jss'
 
-module.exports = ({ types: t }) => ({
+export default ({ types: t }) => ({
   visitor: {
     ImportDeclaration(path) {
       const { node } = path
@@ -44,4 +44,4 @@ module.exports = ({ types: t }) => ({
       }
     },
   },
-})
+});

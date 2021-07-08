@@ -1,22 +1,32 @@
-import 'es6-weak-map/implement'
-import { create } from 'jss'
-import preset from 'jss-preset-default'
-import hashify from 'hash-it'
-import memoize from 'memoize-weak'
-import NormalizePseudoSelectorPlugin from './normalize-selector'
-import DataSelectorPlugin from './data-selector'
-import { processDeclarations, isEmptyObject, cleanup, isFalsy } from './utils'
-import Manager from './Manager'
+import { create } from 'jss';
+import type { Rule } from 'jss';
+import preset from 'jss-preset-default';
+import hashify from 'hash-it';
+import memoize from 'memoize-weak';
+import NormalizePseudoSelectorPlugin from './normalize-selector';
+import { processDeclarations, isEmptyObject, cleanup, isFalsy } from './utils';
+import Manager from './Manager';
 
-const manager = new Manager()
-export const renderToString = () => manager.registry.toString()
-export const reset = () => manager.reset()
-export const jss = create(preset())
-export const getSheet = () => manager.getSheet()
-const cache = {}
+const isDataSelector = name => /\[data-css-.+\]/.test(name);
+const manager = new Manager();
+export const renderToString = () => manager.renderToString();
+export const reset = () => manager.reset();
+export const jss = create(preset());
+export const getSheet = () => manager.getSheet();
+const cache = {};
 
 // render data selectors instead of classNames (like glamor)
-jss.use(DataSelectorPlugin)
+jss.use({
+  onProcessRule: (rule: Rule) => {
+    if (rule.type !== 'style' || !!(rule.options.parent as Rule)?.type || !!isDataSelector(rule.options.selector))
+      return;
+
+    rule.originalSelectorText = rule.options.selector;
+    rule.classSelector = rule.options.selector.substring(1);
+    rule.dataSelector = `data-${rule.classSelector}`;
+    rule.options.selector = `${rule.options.selector}, [${rule.dataSelector}]`;
+  },
+});
 
 // Replace :hover with &:hover, etc.
 jss.use(NormalizePseudoSelectorPlugin)
