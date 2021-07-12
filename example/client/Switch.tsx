@@ -1,22 +1,23 @@
-import React from 'react'
-import css from 'glamor-jss'
-import { TRANSITION_DURATION } from './App'
+import { css } from '../../src';
+
+export const TRANSITION_DURATION = 250;
+
 const styles = {
-  socket: on =>
+  socket: (on: boolean) =>
     css({
       background: on ? '#e8e8e8' : '#cdbe4c',
-      width: 35,
-      height: 55,
+      width: `35px`,
+      height: `55px`,
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       boxShadow: `inset 0 0 7px rgba(0, 0, 0, 0.2), ${
         on ? '0 0 1px #25292f' : '0 0 6px 2px #545454'
       }`,
-      borderRadius: 1,
+      borderRadius: `1px`,
       cursor: 'pointer',
     }),
-  switch: on =>
+  switch: (on: boolean) =>
     css({
       width: '35%',
       height: '50%',
@@ -39,10 +40,11 @@ const styles = {
     }),
 }
 
-const Switch = ({ on, onClick }) => (
-  <div {...styles.socket(on)} onClick={onClick}>
-    <div {...styles.switch(on)} />
+export const Switch = (p: {
+  on: boolean,
+  onClick: () => void,
+}) => (
+  <div {...styles.socket(p.on)} onClick={p.onClick}>
+    <div {...styles.switch(p.on)} />
   </div>
-)
-
-export default Switch
+);

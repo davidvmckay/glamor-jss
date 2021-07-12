@@ -3,7 +3,10 @@
   "version": "2.0.0",
   "description": "Use JSS in glamor style",
   "license": "MIT",
-  "main": "lib/glamor-jss.cjs.js",
+  "exports": {
+    ".": "./dist/glamor-jss.js"
+  },
+  "type": "module",
   "author": {
     "name": "David V. McKay",
     "email": "david.v.mckay@gmail.com"
@@ -18,21 +21,31 @@
     "hoist.js"
   ],
   "scripts": {
-    "start": "cd example && yarn start",
-    "test": "jest"
+    "build": "node esbuild-lib.js",
+    "start": "cd example && pnpm start",
+    "test": "cd test && pnpm test",
+    "redo": "rimraf dist && pnpm i && pnpm build && pnpm build example && pnpm do",
+    "do": "node dist/example/server.js  --enable-source-maps",
+    "postinstall": "cd example && pnpm i && cd ../test && pnpm i && cd .."
   },
   "dependencies": {
-    "es6-weak-map": "2.0.3",
     "hash-it": "5.0.2",
     "jss": "10.7.1",
     "jss-preset-default": "10.7.1",
-    "memoize-weak": "1.0.2"
+    "lodash": "^4.17.21",
+    "source-map-support": "^0.5.19"
   },
   "devDependencies": {
+    "@swc/cli": "^0.1.46",
+    "@swc/core": "^1.2.63",
+    "@types/lodash": "^4.14.171",
     "@types/node": "^16.0.1",
+    "@vitejs/plugin-react-refresh": "^1.3.5",
     "esbuild": "^0.12.15",
-    "jest": "27.0.6",
+    "estrella": "^1.4.1",
     "rimraf": "3.0.2",
-    "typescript": "^4.3.5"
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.5",
+    "vite": "^2.4.1"
   }
 }
