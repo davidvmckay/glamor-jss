@@ -1,5 +1,6 @@
 import { Fragment, useState, useCallback } from 'react'
-import { css } from '../../src'
+import { css } from '../../glamor-jss';
+// import * as css from 'glamor-jss';
 import { Switch, TRANSITION_DURATION } from './Switch'
 import { Banner } from './Banner'
 import JssDarkIcon from '../assets/jss-dark.svg';
@@ -69,28 +70,29 @@ export const App = () => {
   const background = lightsOn ? '#fff' : '#25292f';
   const fontColor = lightsOn ? '#000' : '#f7df1f';
   return (
-    <Fragment>
+    <>
       <Banner
         fill={lightsOn ? '#25292f' : '#fff'}
         color={lightsOn ? '#fff' : '#25292f'}
       />
-      <div {...css(styles.wrapper, { background })}>
-        <div {...styles.imageWrapper(fontColor)}>
-          <a href="https://github.com/cssinjs/jss" {...css({ width: '100%', height: '100%', display: 'block' })} >
-            <div {...css({ opacity: !lightsOn && 0 })}>
+      <div id='github-link-double-wrapper' {...css(styles.wrapper, { background })}>
+        <div id='github-link-wrapper' {...styles.imageWrapper(fontColor)}>
+          <a id='github-link' href="http://localhost:3000" {...css({ width: '100%', height: '100%', display: 'block' })} >
+            <div id='github-link-image-light-wrapper' {...css({ opacity: !lightsOn && 0 })}>
               <img src={JssLightIcon} width={200} alt="" />
             </div>
-            <div {...css({ opacity: lightsOn && 0 })}>
+            <div id='github-link-image-dark-wrapper' {...css({ opacity: lightsOn && 0 })}>
               <img src={JssDarkIcon} width={200} alt="" />
             </div>
           </a>
         </div>
-        <div {...css({ fontSize: 21, transform: 'translateX(-8%)' })} >
-          <span {...css({ color: fontColor, transition: `${TRANSITION_DURATION}ms` })} >
+        <div id='flippy-glamor-style-wrapper' {...css({ fontSize: 21, transform: 'translateX(-8%)' })} >
+          <span id='flippy-glamor-style-asterisk' {...css({ color: fontColor, transition: `${TRANSITION_DURATION}ms` })} >
             *
           </span>
-          <a href="https://github.com/threepointone/glamor">
+          <a id='flippy-glamor-style-glamor-hyperlink' href="http://localhost:3000">
             <span
+               id='flippy-glamor-style-with'
               {...css({
                 display: 'inline-block',
                 color: fontColor,
@@ -104,7 +106,7 @@ export const App = () => {
               })}
             >
               with&nbsp;
-              <span {...css(styles.underline(background, '#cdbe4c'), { color: fontColor, transition: `${TRANSITION_DURATION}ms` })} >
+              <span  id='flippy-glamor-style-glamor' {...css(styles.underline(background, '#cdbe4c'), { color: fontColor, transition: `${TRANSITION_DURATION}ms` })} >
                 glamor
               </span>
               &nbsp;flavor
@@ -112,9 +114,9 @@ export const App = () => {
           </a>
         </div>
       </div>
-      <div {...styles.switch}>
+      <div  id='switch-positioning-wrapper' {...styles.switch}>
         <Switch onClick={handleButtonClick} on={lightsOn} />
       </div>
-    </Fragment>
+    </>
   );
 };

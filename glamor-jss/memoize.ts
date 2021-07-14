@@ -1,19 +1,33 @@
 import * as _ from 'lodash';
 import type { JssStyle }  from 'jss';
 
+/** not sure if this is because og disliked lodash, or if needed specific nuance for css processing... */
+export const customIsObject = val => {
+  const classicResult = Object.prototype.toString.call(val) === '[object Object]';
+  const lodashResult = _.isObject(val);
+  if (classicResult !== lodashResult) throw new Error('assumed _.isObject was equivalent...');
+  return classicResult;
+};
+
+/** Specifically tuned for cleaning css rules (e.g., retain zeroes pr booleans) */
+export const customIsFalsy = value =>
+  value === null ||
+  value === undefined ||
+  value === false ||
+  (typeof value === 'object' && Object.keys(value).length === 0);
+
 export const cleanup = (declarations: JssStyle | _.Dictionary<JssStyle>) => {
   for (const key of _.keys(declarations) as Array<keyof typeof declarations>) {
-    if (_.isObject(declarations[key]))
+    if (customIsObject(declarations[key]))
       cleanup(declarations[key] as any); // recusion
 
-    if (!declarations[key] || _.isEmpty(declarations[key]))
+    // though else here was missing cleanup opportunities, but maybe not...
+    else if (customIsFalsy(declarations[key]))
       delete declarations[key];
   }
 
   return declarations;
 };
-
-export const isEmptyObject = (obj: any) => _.isObject(obj) && _.isEmpty(obj);
 
 const isPrimitive = <T>(value: T) => ((typeof value !== 'object') && (typeof value !== 'function')) || (value === null);
 
