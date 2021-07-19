@@ -206,6 +206,6 @@ const keyframes = (name: Name, declarations: Name | _.Dictionary<AugJssStyle>) =
   return uniqueName;
 };
 
-Object.assign(memoizedCss, {keyframes});
-export const css = memoizedCss as typeof memoizedCss & {keyframes: typeof keyframes};
+Object.assign(memoizedCss, {keyframes, renderToString: manager.renderToString});
+export const css = memoizedCss as typeof memoizedCss & {keyframes: typeof keyframes, renderToString: typeof manager.renderToString};
 export default css;
