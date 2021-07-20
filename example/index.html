@@ -1,26 +1,18 @@
 <!doctype html>
 <html>
 <head>
-  <title>glamor-jss</title>
-  <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="https://fonts.googleapis.com/css?family=Alegreya" rel="stylesheet">
-  <link rel="stylesheet" href="/style.css">
-  <script type="module" src="http://localhost:3000/@vite/client"></script>
-  <script type="module" src="/polyfills"></script>
-  <style>/*ssr-css*/</style>
-  <script type="module">
-    import RefreshRuntime from 'http://localhost:3000/@react-refresh'
-    RefreshRuntime.injectIntoGlobalHook(window)
-    window.$RefreshReg$ = () => {}
-    window.$RefreshSig$ = () => (type) => type
-    window.__vite_plugin_react_preamble_installed__ = true
-  </script>
-  <script type="module" src="http://localhost:3000/client/index.ts" defer></script>
-  <!-- <script type="module" src="/client" defer crossorigin></script> -->
+    <title>glamor-jss</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://fonts.googleapis.com/css?family=Alegreya" rel="stylesheet">
+    <link rel="stylesheet" href="/style.css">
+    <!--dev-scripts-->
+    <!--ssr-css-->
+    <script type="module" src="/polyfills"></script>
+    <script type="module" src="http://localhost:3000/client/index.ts" defer></script>
 </head>
 <body>
-  <div id="root"><!--ssr-outlet--></div>
+    <div id="root"><!--ssr-outlet--></div>
 </body>
 </html>

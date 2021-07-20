@@ -15,7 +15,6 @@ const jss = jssModule.create(preset());
 jss.use({
   /** render data-x selectors in addition to classNames (like glamor) */
   onProcessRule: (rule: MyStyleRule) => {
-    console.log(rule)
     if (rule.type === 'style' && !rule.options?.parent?.type && !/\[data-css-.+\]/.test(rule.selectorText)) {
       rule.originalSelectorText = rule.selectorText;
       rule.classSelector = rule.selectorText.substring(1);
@@ -25,23 +24,6 @@ jss.use({
 
     return rule;
   },
-
-  // this callback supports overloads, so the code inside will be tricky...
-  // onCreateRule: (styleOrName: string | JssStyle, decl: JssStyle, options?: Partial<RuleOptions>) => {
-  //   const style: any = decl ?? styleOrName ?? {};
-  //   for (const key of _.keys(style)) {
-  //     const k = key.trim();
-  //     if (!k.startsWith(':') && !k.startsWith('>')) continue;
-  //     style[`&${k}`] = style[k];
-  //     delete style[k];
-  //   }
-
-  //   if (_.keys(style).length === 0)
-  //     return null;
-
-  //   const name = typeof styleOrName === 'string' ? styleOrName : undefined;
-  //   return new BypassStyleRule(name, style, options);
-  // },
 
   /** Replace :hover with &:hover, etc. */
   onCreateRule: (name: any, decl: any, options: any): any => {

@@ -16,4 +16,10 @@ export default defineConfig({
       // createCustomServer: () => 
     })
   ],
+  build: {
+    manifest: true,
+    rollupOptions: {
+      input: './server.ts',
+    },
+  },
 });

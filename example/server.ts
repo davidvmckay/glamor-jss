@@ -7,7 +7,6 @@ import ReactDOMServer from 'react-dom/server';
 import { css } from '../../glamor-jss';
 import CleanCss from 'clean-css';
 import { App } from './client/App';
-import { createServer as createViteServer } from 'vite';
 
 const __dirname = '.';
 
@@ -16,18 +15,25 @@ const crossOriginDuringDev = process.env.NODE_ENV === 'production' ? 'crossorigi
 const clean = new CleanCss();
 const app = express()
     .disable('x-powered-by')
-    .use('/style.css', express.static(path.join(__dirname, 'style.css')))
-    .use('/plyfills', express.static(path.join(__dirname, 'polyfills.ts')))
-    .use('/client', express.static(path.join(__dirname, 'client/index.ts')))
     .get('/', async (req, res) => {
         const rawHtml = await fs.promises.readFile(path.join(__dirname, 'index.html'), 'utf8');
         const reactSsrHtml = ReactDOMServer.renderToString(React.createElement(App));
         const ssrCss = clean.minify(css.renderToString()).styles;
-        const html = rawHtml.replace('/*ssr-css*/', ssrCss).replace('<!--ssr-outlet-->', reactSsrHtml);
+        const html = rawHtml
+            .replace('<!--dev-scripts-->', process.env.NODE_ENV === 'production' ? '' : `
+    <script type="module" src="http://localhost:3000/@vite/client"></script>
+    <script type="module">
+        import RefreshRuntime from 'http://localhost:3000/@react-refresh'
+        RefreshRuntime.injectIntoGlobalHook(window)
+        window.$RefreshReg$ = () => {}
+        window.$RefreshSig$ = () => (type) => type
+        window.__vite_plugin_react_preamble_installed__ = true
+    </script>
+            `)
+            .replace('<!--ssr-css-->', `<style>${ssrCss}</style>`)
+            .replace('<!--ssr-outlet-->', reactSsrHtml);
         res.status(200).send(html ?? rawHtml);
     });
-
-// await createViteServer({server: {middlewareMode: 'ssr'}});
 
 if (process.env.NODE_ENV === 'production') {
     http
