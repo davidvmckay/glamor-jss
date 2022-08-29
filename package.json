@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Use JSS in glamor style",
   "license": "UNLICENSED",
+  "type": "module",
   "main": "src.ts",
   "author": { "name": "David V. McKay", "email": "david.v.mckay@gmail.com" },
   "repository": { "type": "git", "url": "https://github.com/davidvmckay/glamor-jss" },
