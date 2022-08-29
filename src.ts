@@ -85,7 +85,7 @@ export const processDeclarations = (declarations, cache) => {
 
 const NormalizePseudoSelectorPlugin = {
     onCreateRule: (name, decl, options) => {
-        if (options.__onCreateRule_EXECUTED__) return;
+        if (options.__onCreateRule_EXECUTED__) return options.__onCreateRule_EXECUTED__.rule;
 
         if (decl == null && typeof name !== 'string') {
             decl = name;
@@ -100,7 +100,9 @@ const NormalizePseudoSelectorPlugin = {
             }
         });
 
-        return createRule(name, decl, Object.assign({}, options, {__onCreateRule_EXECUTED__: true}));
+        const bloop = {rule: undefined as any};
+        bloop.rule = createRule(name, decl, Object.assign({}, options, {__onCreateRule_EXECUTED__: bloop}));
+        return bloop.rule;
     },
 };
 
