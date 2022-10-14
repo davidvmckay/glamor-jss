@@ -162,6 +162,7 @@ export default class Manager {
             meta: `${sheetPrefix}-${this.sheetCount++}`,
         }) as StyleSheet<string | number | symbol>;
         this.registry.add(sheet);
+        sheet.attach();
         return sheet;
     };
 
