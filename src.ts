@@ -3,6 +3,20 @@ import { SheetsRegistry, create, createRule, StyleSheet, Rule } from 'jss';
 import preset from 'jss-preset-default';
 import hashify from 'hash-it';
 import memoize from 'memoize-weak';
+import * as CSS from 'csstype';
+
+interface CSSProperties extends CSS.Properties<string | number> {
+    /**
+     * The index signature was removed to enable closed typing for style
+     * using CSSType. You're able to use type assertion or module augmentation
+     * to add properties or an index signature of your own.
+     *
+     * For examples and more information, visit:
+     * https://github.com/frenic/csstype#what-should-i-do-when-i-get-type-errors
+     */
+}
+
+export type CssProps = CSSProperties | {[Selector: string]: CssProps};
 
 //  ====================
 //  UTILS
@@ -198,7 +212,7 @@ export const renderToString = () => manager.registry.toString();
 export const reset = () => manager.reset();
 // export const jss = create(preset()); moved into MANAGER section
 export const getSheet = () => manager.getSheet();
-const cache = {};
+const cache = {} as {[K: string]: {[X: number]: string}};
 
 // render data selectors instead of classNames (like glamor)
 jss.use(DataSelectorPlugin);
@@ -206,7 +220,7 @@ jss.use(DataSelectorPlugin);
 // Replace :hover with &:hover, etc.
 jss.use(NormalizePseudoSelectorPlugin);
 
-function cssImpl(...declarations) {
+function cssImpl(...declarations: CssProps[]) {
     // Second layer of caching
     const hash = hashify(declarations);
 
@@ -218,7 +232,7 @@ function cssImpl(...declarations) {
 
     // Go through all grouped declarations → { media: { '@media (…)': {} }, pseudo: { ':hover': {}, …}
     // Add them as rule with the same name and return the selector by reducing it
-    const rule = ['other', 'pseudo', 'media', 'supports'].reduce(
+    const rule = (['other', 'pseudo', 'media', 'supports'] as const).reduce(
         (selector, key) => {
             const subDecl = grouped[key];
             if (!isEmptyObject(subDecl)) {
@@ -253,17 +267,21 @@ function cssImpl(...declarations) {
     return result;
 }
 
-// First layer of caching
-export const css = memoize(cssImpl);
-
 let animationCount = 0;
-css.keyframes = (name, declarations) => {
-    if (typeof name !== 'string') {
-        declarations = name;
-        name = 'animation';
-    }
 
-    const uniqueName = `${name}-${animationCount++}`;
-    manager.addRule(`@keyframes ${uniqueName}`, declarations);
-    return uniqueName;
-};
+// First layer of caching
+export const css = Object.assign(
+    memoize(cssImpl) as typeof cssImpl,
+    {
+        keyframes: (name: string, declarations: CssProps) => {
+            if (typeof name !== 'string') {
+                declarations = name;
+                name = 'animation';
+            }
+        
+            const uniqueName = `${name}-${animationCount++}`;
+            manager.addRule(`@keyframes ${uniqueName}`, declarations);
+            return uniqueName;
+        }
+    }
+);
