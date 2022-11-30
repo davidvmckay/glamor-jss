@@ -2,78 +2,105 @@ import 'es6-weak-map/implement';
 import { SheetsRegistry, create, createRule, StyleSheet, Rule } from 'jss';
 import preset from 'jss-preset-default';
 import hashify from 'hash-it';
-import memoize from 'memoize-weak';
+import { memoize } from './memoize-weak';
 import * as CSS from 'csstype';
 
-interface CSSProperties extends CSS.Properties<string | number> {
-    /**
-     * The index signature was removed to enable closed typing for style
-     * using CSSType. You're able to use type assertion or module augmentation
-     * to add properties or an index signature of your own.
-     *
-     * For examples and more information, visit:
-     * https://github.com/frenic/csstype#what-should-i-do-when-i-get-type-errors
-     */
-}
 
-export type CssProps = CSSProperties | {[Selector: string]: CssProps};
+type Obj = {[K: string]: unknown};
+const assignNonEnumerable = <A extends Obj, B extends Obj>(a: A, b: B) => {
+    const bb = {} as any;
+    for (const k of Object.keys(b)) {
+        bb[k] = {enumerable: false, value: b[k]};
+    }
+    Object.defineProperties(a, bb);
+    return a as A & B;
+};
+
+export type CssProps = CSS.Properties<string | number> & {[Selector: string]: CssProps | undefined};
+export type Declaration = CssProps & {hash?: number};
+export type Declarations = Declaration[];
+export type CssCache = {
+    [K: number]: {
+        [X: number]: string,
+        toString: () => string,
+        hash: number,
+        values: Declarations,
+    },
+};
+type Arg3<F> = F extends ((a: any, b: any, c: infer Third, ...z: any) => any) ? Third : never;
+export type RuleOptions = Arg3<typeof createRule>;
+export type RuleAugmentation = {
+    originalSelectorText?: string,
+    classSelector?: string,
+    dataSelector?: string,
+    selectorText?: string,
+};
+export type PsuedoSelector = string;
 
 //  ====================
 //  UTILS
 //  --------------------
 
-const isObject = val => Object.prototype.toString.call(val) === '[object Object]';
-const flatten = arr => Array.prototype.concat(...arr);
-const mergeValues = arr => arr.reduce((prev, curr) => ({ ...prev, ...curr }), {});
-const mergeDeep = (...objects) => objects.reduce((prev, curr) => {
-    Object.keys(curr).forEach(key => {
-        const prevVal = prev[key]
-        const currVal = curr[key]
+const isObject = (val: unknown): val is Obj => Object.prototype.toString.call(val) === '[object Object]';
+const isDeclaration = (val: unknown): val is Declaration => isObject(val);
+const flatten = <A extends unknown[]>(arr: A) => Array.prototype.concat(...arr);
+const mergeValues = (arr: Obj[]) => arr.reduce((prev, curr) => ({ ...prev, ...curr }), {});
+const mergeDeep = (...objects: Obj[]) => objects.reduce((prev, curr) => {
+    Object.keys(curr).forEach((key: keyof typeof curr) => {
+        const prevVal = prev[key];
+        const currVal = curr[key];
         if (Array.isArray(prevVal) && Array.isArray(currVal))
-            prev[key] = prevVal.concat(...currVal)
+            prev[key] = prevVal.concat(...currVal);
         else if (isObject(prevVal) && isObject(currVal))
-            prev[key] = mergeDeep(prevVal, currVal)
+            prev[key] = mergeDeep(prevVal, currVal);
         else
-            prev[key] = currVal
+            prev[key] = currVal;
     })
 
-    return prev
+    return prev;
 }, {});
 
-export const isFalsy = value =>
-    value === null ||
-    value === undefined ||
-    value === false ||
-    (typeof value === 'object' && Object.keys(value).length === 0);
-
-export const cleanup = declarations => {
-    Object.keys(declarations).forEach(key => {
-        if (isObject(declarations[key]))
-            cleanup(declarations[key])
-        else if (isFalsy(declarations[key]))
-            delete declarations[key]
-    });
-
-    return declarations;
-};
-
-export const isEmptyObject = obj => {
+/** Is it definitely an object, and also an object with zero enumerable keys? */
+export const isEmptyObject = (obj: Obj) => {
+    if (typeof obj !== 'object') return false;
     for (const _ in obj) return false;
     return true;
 }
 
-export const groupByType = obj => Object.keys(obj).reduce(
-    (prev, curr) => {
-        let key = 'other'
-        if (curr.indexOf('@supports') === 0) key = 'supports'
-        else if (curr.indexOf('@media') === 0) key = 'media'
-        else if (curr.indexOf(':') === 0 || curr.indexOf('&:') === 0)
-            key = 'pseudo'
+/** Specialized notion of falsyness that includes objects with zero enumerable keys -- but EXCLUDES falsy numbers. */
+export const isFalsy = (value: any) =>
+    value === null ||
+    value === undefined ||
+    value === false ||
+    isEmptyObject(value);
 
-        prev[key][curr] = obj[curr]
-        return prev
+/** Deletes falsy values from Declarations recursively. */
+export const cleanup = (decl: Declaration) => {
+    for (const k in Object.keys(decl)) {
+        if (isFalsy(decl[k])) {
+            delete decl[k];
+            continue;
+        }
+
+        if (isDeclaration(decl[k]))
+            cleanup(decl[k]!);
+    }
+
+    return decl;
+};
+
+export const groupByType = (obj: Obj) => Object.keys(obj).reduce(
+    (prev, curr) => {
+        let key: keyof typeof prev = 'other';
+        if (curr.indexOf('@supports') === 0) key = 'supports';
+        else if (curr.indexOf('@media') === 0) key = 'media';
+        else if (curr.indexOf(':') === 0 || curr.indexOf('&:') === 0)
+            key = 'pseudo';
+
+        prev[key][curr] = obj[curr as keyof typeof obj];
+        return prev;
     },
-    { media: {}, supports: {}, pseudo: {}, other: {} }
+    { media: {} as Obj, supports: {} as Obj, pseudo: {} as Obj, other: {} as Obj } as const
 );
 
 /**
@@ -82,10 +109,10 @@ export const groupByType = obj => Object.keys(obj).reduce(
  * filters out falsy values and groups them in to @media/@support/pseudos and others
  * to give them precendence in the stylesheet
  */
-export const processDeclarations = (declarations, cache) => {
+export const processDeclarations = (declarations: Declarations, cache: CssCache) => {
     const flattened = declarations
         .map(d => (d && d.hash ? cache[d.hash].values : d))
-        .map(d => (Array.isArray(d) ? mergeValues(flatten(d)) : d))
+        .map(d => (Array.isArray(d) ? mergeValues(flatten(d as Declarations)) : d))
         .filter(Boolean);
 
     const merged = mergeDeep(...flattened);
@@ -98,24 +125,27 @@ export const processDeclarations = (declarations, cache) => {
 //  --------------------
 
 const NormalizePseudoSelectorPlugin = {
-    onCreateRule: (name, decl, options) => {
-        if (options.__onCreateRule_EXECUTED__) return options.__onCreateRule_EXECUTED__.rule;
+    onCreateRule: (name: string | Declaration, decl: Declaration, options?: RuleOptions & {__onCreateRule_EXECUTED__?: {rule: Rule}}) => {
+        if (isObject(options?.__onCreateRule_EXECUTED__))
+            return options!.__onCreateRule_EXECUTED__.rule as Rule;
 
-        if (decl == null && typeof name !== 'string') {
+        if (isDeclaration(name)) {
             decl = name;
-            name = undefined;
+            name = undefined as any; // super weird!!!!!!!!!!!!!!!!!!!!  -- I lack knowledge of JSS internals to know why this was done
         }
 
-        Object.keys(decl).forEach(key => {
+        Object.keys(decl!).forEach(key => {
             key = key.trim();
             if (key.indexOf(':') === 0 || key.indexOf('>') === 0) {
-                decl[`&${key}`] = { ...decl[key] };
-                delete decl[key];
+                (decl!)[`&${key}`] = { ...(decl!)[key] };
+                delete (decl!)[key];
             }
         });
 
-        const bloop = {rule: undefined as any};
-        bloop.rule = createRule(name, decl, Object.assign({}, options, {__onCreateRule_EXECUTED__: bloop}));
+        const bloop = {rule: undefined as Rule | undefined};
+        if (typeof name !== 'string')
+            console.warn('attempting to create css rule without a name');
+        bloop.rule = createRule(name as any, decl!, Object.assign({} as RuleOptions, options ?? {}, {__onCreateRule_EXECUTED__: bloop}));
         return bloop.rule;
     },
 };
@@ -125,15 +155,17 @@ const NormalizePseudoSelectorPlugin = {
 //  DATA-SELECTOR
 //  --------------------
 
-const isDataSelector = name => /\[data-css-.+\]/.test(name);
+const isDataSelector = (name: string) => /\[data-css-.+\]/.test(name);
 export const DataSelectorPlugin = {
-    onProcessRule: rule => {
+    onProcessRule: (rule: Rule & RuleAugmentation) => {
         const { selectorText, type, options: { parent } } = rule;
-        if (type === 'style' && !parent.type && !isDataSelector(selectorText)) {
-            rule.originalSelectorText = selectorText;
-            rule.classSelector = selectorText.substring(1);
-            rule.dataSelector = `data-${rule.classSelector}`;
-            rule.selectorText = `${selectorText}, [${rule.dataSelector}]`;
+        if (type === 'style' && !(parent as Rule).type && !isDataSelector(selectorText??'')) {
+            Object.assign(rule, {
+                originalSelectorText: selectorText,
+                classSelector: selectorText?.substring(1)??'',
+                dataSelector: `data-${rule.classSelector}`,
+                selectorText: `${selectorText}, [${rule.dataSelector}]`, 
+            });
         }
 
         return rule;
@@ -187,7 +219,7 @@ export default class Manager {
         return this.currentSheet;
     };
 
-    addRule = (hash, declarations, options = {}) => {
+    addRule = (hash: number | PsuedoSelector, declarations: Declaration, options: Partial<RuleOptions> = {}) => {
         const sheet = this.getSheet();
 
         // Detatch and attach again to make Chrome Dev Tools working
@@ -212,7 +244,7 @@ export const renderToString = () => manager.registry.toString();
 export const reset = () => manager.reset();
 // export const jss = create(preset()); moved into MANAGER section
 export const getSheet = () => manager.getSheet();
-const cache = {} as {[K: string]: {[X: number]: string}};
+const cache = {} as CssCache;
 
 // render data selectors instead of classNames (like glamor)
 jss.use(DataSelectorPlugin);
@@ -235,7 +267,7 @@ function cssImpl(...declarations: CssProps[]) {
     const rule = (['other', 'pseudo', 'media', 'supports'] as const).reduce(
         (selector, key) => {
             const subDecl = grouped[key];
-            if (!isEmptyObject(subDecl)) {
+            if (!isEmptyObject(subDecl) && isDeclaration(subDecl)) {
                 const cleanedDecl = cleanup(subDecl);
                 return manager.addRule(hash, cleanedDecl);
             }
@@ -243,35 +275,24 @@ function cssImpl(...declarations: CssProps[]) {
             return selector as any & Rule;
         },
         ''
-    ) as any & Rule;
+    ) as any as Rule & RuleAugmentation;
 
-    const result = { [rule.dataSelector]: '' };
-
-    // Add these properties as non-enumerable so they don't pollute spreading {...css(…)}
-    Object.defineProperties(result, {
-        toString: {
-            enumerable: false,
-            value: () => rule.classSelector,
+    return cache[hash] = assignNonEnumerable(
+        { [rule.dataSelector!]: '' },
+        // Add these properties as non-enumerable so they don't pollute spreading {...css(…)}
+        {
+            toString: () => rule.classSelector ?? '∫--undefined classSelector--∫',
+            hash    : hash,
+            values  : declarations,
         },
-        hash: {
-            enumerable: false,
-            value: hash,
-        },
-        values: {
-            enumerable: false,
-            value: declarations,
-        },
-    });
-
-    cache[hash] = result;
-    return result;
+    );
 }
 
 let animationCount = 0;
 
 // First layer of caching
 export const css = Object.assign(
-    memoize(cssImpl) as typeof cssImpl,
+    memoize(cssImpl),
     {
         keyframes: (name: string, declarations: CssProps) => {
             if (typeof name !== 'string') {
