@@ -1,6 +1,6 @@
 {
   "name": "glamor-jss",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "Use JSS in glamor style",
   "license": "UNLICENSED",
   "type": "module",
