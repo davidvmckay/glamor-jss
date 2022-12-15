@@ -1,5 +1,5 @@
 import 'es6-weak-map/implement';
-import { SheetsRegistry, create, createRule, StyleSheet, Rule } from 'jss';
+import { SheetsRegistry, create, createRule, StyleSheet, Rule, JssStyle } from 'jss';
 import preset from 'jss-preset-default';
 import hashify from 'hash-it';
 import { memoize } from './memoize-weak';
@@ -20,7 +20,14 @@ const assignNonEnumerable = <A extends Obj, B extends Obj>(a: A, b: B) => {
     return a as A & B;
 };
 
-export type CssProps = CSS.Properties<string | number> & {[Selector: string]: CssProps | undefined};
+/** Convert an intersection to an object, e.g. {a: 1} & {a: 2, b: 3} => {a: 1 & 2, b: 3} */
+type Collapse<T> = T extends object ? { [K in keyof T]: T[K] } : T;
+
+// JSSStyle is very like CSS.Properties, except that it permits arrays and other value types that JSS plugins transfrom to css strings.
+type StyleProps = Collapse<Partial<JssStyle | CSS.Properties>>;
+type NestedStye = {[Selector: string]: StyleProps | undefined};
+// export type CssProps = StyleProps & {[Selector: string]: CssProps | undefined};
+export type CssProps = Collapse<StyleProps | NestedStye>;
 export type Declaration = CssProps & {hash?: number};
 export type Declarations = Declaration[];
 export type CssCache = {
@@ -82,13 +89,14 @@ export const isFalsy = (value: any) =>
 /** Deletes falsy values from Declarations recursively. */
 export const cleanup = (decl: Declaration) => {
     for (const k in Object.keys(decl)) {
-        if (isFalsy(decl[k])) {
-            delete decl[k];
+        // TODO: validate these casts?
+        if (isFalsy(decl[k as keyof Declaration])) {
+            delete decl[k as keyof Declaration];
             continue;
         }
 
-        if (isDeclaration(decl[k]))
-            cleanup(decl[k]!);
+        if (isDeclaration((decl as NestedStye)[k]))
+            cleanup((decl as NestedStye)[k]!);
     }
 
     return decl;
@@ -142,15 +150,16 @@ const NormalizePseudoSelectorPlugin = {
         Object.keys(decl!).forEach(key => {
             key = key.trim();
             if (key.indexOf(':') === 0 || key.indexOf('>') === 0) {
-                (decl!)[`&${key}`] = { ...(decl!)[key] };
-                delete (decl!)[key];
+                const nestedDecl = decl as NestedStye;
+                (nestedDecl!)[`&${key}`] = { ...((nestedDecl!)[key]||{}) };
+                delete (nestedDecl!)[key];
             }
         });
 
         const bloop = {rule: undefined as Rule | undefined};
         if (typeof name !== 'string')
             console.warn('attempting to create css rule without a name');
-        bloop.rule = createRule(name as any, decl!, Object.assign({} as RuleOptions, options ?? {}, {__onCreateRule_EXECUTED__: bloop}));
+        bloop.rule = createRule(name as any, decl! as JssStyle, Object.assign({} as RuleOptions, options ?? {}, {__onCreateRule_EXECUTED__: bloop}));
         return bloop.rule;
     },
 };
@@ -182,7 +191,7 @@ export const DataSelectorPlugin = {
 //  --------------------
 
 export const jss = create(preset());
-const IS_DEV = process.env.NODE_ENV !== 'production';
+const IS_DEV = process?.env.NODE_ENV !== 'production';
 export const MAX_RULES = 65534;
 export default class Manager {
     registry = new SheetsRegistry();
@@ -224,13 +233,13 @@ export default class Manager {
         return this.currentSheet;
     };
 
-    addRule = (hash: number | PsuedoSelector, declarations: Declaration, options: Partial<RuleOptions> = {}) => {
+    addRule = (hash: number | PsuedoSelector, declaration: Declaration, options: Partial<RuleOptions> = {}) => {
         const sheet = this.getSheet();
 
         // Detatch and attach again to make Chrome Dev Tools working
         // Similar to `speedy` from glamor: https://github.com/threepointone/glamor#speedy-mode
         if (IS_DEV) sheet.detach();
-        const rule = sheet.addRule(hash, declarations, options);
+        const rule = sheet.addRule(hash, declaration as JssStyle, options);
         // https://blogs.msdn.microsoft.com/ieinternals/2011/05/14/stylesheet-limits-in-internet-explorer/
         if (++this.rulesCount % MAX_RULES === 0)
             this.currentSheet = this.createSheet();
