@@ -6,6 +6,10 @@ import { memoize } from './memoize-weak';
 import * as CSS from 'csstype';
 
 
+//  ====================
+//  TYPES
+//  --------------------
+
 type Obj = {[K: string]: unknown};
 const assignNonEnumerable = <A extends Obj, B extends Obj>(a: A, b: B) => {
     const bb = {} as any;
@@ -36,6 +40,7 @@ export type RuleAugmentation = {
     selectorText?: string,
 };
 export type PsuedoSelector = string;
+
 
 //  ====================
 //  UTILS
@@ -160,17 +165,17 @@ export const DataSelectorPlugin = {
     onProcessRule: (rule: Rule & RuleAugmentation) => {
         const { selectorText, type, options: { parent } } = rule;
         if (type === 'style' && !(parent as Rule).type && !isDataSelector(selectorText??'')) {
-            Object.assign(rule, {
-                originalSelectorText: selectorText,
-                classSelector: selectorText?.substring(1)??'',
-                dataSelector: `data-${rule.classSelector}`,
-                selectorText: `${selectorText}, [${rule.dataSelector}]`, 
-            });
+            // MOTE: individual assignments instead of Object.assign.... probably due to setters.
+            rule.originalSelectorText = selectorText;
+            rule.classSelector = selectorText?.substring(1)??'';
+            rule.dataSelector = `data-${rule.classSelector}`;
+            rule.selectorText = `${selectorText}, [${rule.dataSelector}]`;
         }
 
         return rule;
     },
 };
+
 
 //  ====================
 //  MANAGER
@@ -234,6 +239,7 @@ export default class Manager {
         return rule;
     };
 }
+
 
 //  ====================
 //  INDEX
