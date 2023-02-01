@@ -4,6 +4,10 @@ import preset from 'jss-preset-default';
 import hashify from 'hash-it';
 import { memoize } from './memoize-weak';
 import * as CSS from 'csstype';
+export * as JssCore from 'jss';
+export const DefaultPreset = preset;
+
+export const hash = hashify;
 
 
 //  ====================
@@ -30,14 +34,14 @@ type NestedStye = {[Selector: string]: StyleProps | undefined};
 export type CssProps = Collapse<StyleProps | NestedStye>;
 export type Declaration = CssProps & {hash?: number};
 export type Declarations = Declaration[];
-export type CssCache = {
-    [K: number]: {
-        [X: number]: string,
-        toString: () => string,
-        hash: number,
-        values: Declarations,
-    },
+export type CssAttachable = {
+    [X: `data-${number}`]: string,
+    toString: () => string,
+    hash: number,
+    values: Declarations,
 };
+
+export type CssCache = { [K: number]: CssAttachable };
 type Arg3<F> = F extends ((a: any, b: any, c: infer Third, ...z: any) => any) ? Third : never;
 export type RuleOptions = Arg3<typeof createRule>;
 export type RuleAugmentation = {
@@ -143,10 +147,15 @@ const NormalizePseudoSelectorPlugin = {
             return options!.__onCreateRule_EXECUTED__.rule as Rule;
 
         if (isDeclaration(name)) {
-            decl = name;
-            name = undefined as any; // super weird!!!!!!!!!!!!!!!!!!!!  -- I lack knowledge of JSS internals to know why this was done
-        }
+            const oDec = decl;
+            decl = Object.assign(decl ?? {}, name);
+            name = `glamor-${hashify(decl)}`;
+            console.warn(`name was an object, renamed to ${name}; original decl was '${JSON.stringify(oDec, null, 4)}'`);
+            // name = undefined as any; // super weird!!!!!!!!!!!!!!!!!!!!  -- I lack knowledge of JSS internals to know why this was done
+        } else if (typeof name === 'number' /*i.e. a hash*/)
+            name = `glamor-${name}`;
 
+        // special re-formatting for nested declarations; supports pseudo selectors and (some) complex selector expressions
         Object.keys(decl!).forEach(key => {
             key = key.trim();
             if (key.indexOf(':') === 0 || key.indexOf('>') === 0) {
@@ -158,7 +167,8 @@ const NormalizePseudoSelectorPlugin = {
 
         const bloop = {rule: undefined as Rule | undefined};
         if (typeof name !== 'string')
-            console.warn('attempting to create css rule without a name');
+            console.warn(`attempting to create css rule without a name: ${name} decl: ${decl} opts: ${options}`);
+
         bloop.rule = createRule(name as any, decl! as JssStyle, Object.assign({} as RuleOptions, options ?? {}, {__onCreateRule_EXECUTED__: bloop}));
         return bloop.rule;
     },
@@ -191,7 +201,8 @@ export const DataSelectorPlugin = {
 //  --------------------
 
 export const jss = create(preset());
-const IS_DEV = process?.env.NODE_ENV !== 'production';
+// const IS_DEV = process?.env.NODE_ENV !== 'production';
+const IS_DEV = false;
 export const MAX_RULES = 65534;
 export default class Manager {
     registry = new SheetsRegistry();
@@ -202,6 +213,7 @@ export default class Manager {
         sheetPrefix: 'glamor-jss',
         classNamePrefix: 'css',
     };
+
     constructor(options = {}) {
         this.options = {
             sheetPrefix: 'glamor-jss',
@@ -267,7 +279,7 @@ jss.use(DataSelectorPlugin);
 // Replace :hover with &:hover, etc.
 jss.use(NormalizePseudoSelectorPlugin);
 
-function cssImpl(...declarations: CssProps[]) {
+function cssImpl(...declarations: CssProps[]): undefined | CssAttachable {
     // Second layer of caching
     const hash = hashify(declarations);
 
@@ -307,7 +319,7 @@ let animationCount = 0;
 
 // First layer of caching
 export const css = Object.assign(
-    memoize(cssImpl),
+    memoize(cssImpl), // only works if consumers retain the ACTUAL object with declarations - which is rare, often decls are inline in a funciton component and not memoized
     {
         keyframes: (name: string, declarations: CssProps) => {
             if (typeof name !== 'string') {

@@ -21,7 +21,7 @@
   "dependencies": {
     "es6-weak-map": "2.0.3",
     "hash-it": "5.0.2",
-    "jss": "10.9.2",
+    "jss": "^10.9.2",
     "jss-preset-default": "10.9.2"
   },
   "devDependencies": {

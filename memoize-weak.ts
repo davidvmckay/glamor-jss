@@ -4,7 +4,7 @@ class MapTree {
     private childBranches = new WeakMap();
     private primitiveKeys = new Map();
     hasValue = false;
-    value = undefined;
+    value = undefined as object | undefined;
 
     has = (key: object) => {
         const keyObject = (isPrimitive(key) ? this.primitiveKeys.get(key) : key);
@@ -28,7 +28,7 @@ class MapTree {
 
     setValue = (value: object) => {
         this.hasValue = true;
-        return (value = value);
+        return (this.value = value);
     };
 
     createKey = (key: object) => {
