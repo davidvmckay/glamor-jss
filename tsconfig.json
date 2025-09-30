@@ -1,32 +1,41 @@
 {
     "compilerOptions": {
+        // Enable latest features
+        "lib": ["ESNext", "DOM", "DOM.Iterable"],
         "target": "ESNext",
+        "module": "ESNext",
+        "moduleDetection": "force",
+        "jsx": "react-jsx",
+        "allowJs": true,
         "useDefineForClassFields": true,
-        "lib": [
-            "DOM",
-            "DOM.Iterable",
-            "ESNext"
-        ],
-        "allowJs": false,
+
+        // Bundler mode
+        "moduleResolution": "bundler",
+        "allowImportingTsExtensions": true,
+        "verbatimModuleSyntax": true,
+        "noEmit": true,
+
+        // Best practices
+        "strict": true,
         "skipLibCheck": true,
+        "noFallthroughCasesInSwitch": true,
+
+        // Some stricter flags
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noPropertyAccessFromIndexSignature": true,
+
+        // some stuff I had that bun doesnt mention
         "esModuleInterop": false,
         "allowSyntheticDefaultImports": true,
-        "strict": true,
         "forceConsistentCasingInFileNames": true,
-        "module": "ESNext",
-        "moduleResolution": "Node",
         "resolveJsonModule": true,
         "isolatedModules": true,
-        "noEmit": true,
-        "jsx": "react-jsx"
     },
     "include": [
         "./memoize-weak.ts",
-        "./src.ts"
-    ],
-    "references": [
-        {
-            "path": "./tsconfig.node.json"
-        }
+        "glamor.ts",
+        "./vite.config.js"
     ]
 }
+

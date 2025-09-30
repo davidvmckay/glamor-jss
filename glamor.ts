@@ -1,10 +1,13 @@
-import 'es6-weak-map/implement';
-import { SheetsRegistry, create, createRule, StyleSheet, Rule, JssStyle } from 'jss';
+import { SheetsRegistry, create, createRule } from 'jss';
+import type { StyleSheet, Rule, JssStyle } from 'jss';
 import preset from 'jss-preset-default';
 import hashify from 'hash-it';
 import { memoize } from './memoize-weak';
-import * as CSS from 'csstype';
+import type * as CSS from 'csstype';
+export type * as CSS from 'csstype'
 export * as JssCore from 'jss';
+import * as Z from 'zod';
+import * as _ from 'lodash';
 export const DefaultPreset = preset;
 
 export const hash = hashify;
@@ -15,6 +18,7 @@ export const hash = hashify;
 //  --------------------
 
 type Obj = {[K: string]: unknown};
+/** Object.assing, except the enumerable properties of b are assigned to a as non-enumerable, via Object.defineProperties(...) */
 const assignNonEnumerable = <A extends Obj, B extends Obj>(a: A, b: B) => {
     const bb = {} as any;
     for (const k of Object.keys(b)) {
@@ -32,15 +36,19 @@ type StyleProps = Collapse<Partial<JssStyle | CSS.Properties>>;
 type NestedStye = {[Selector: string]: StyleProps | undefined};
 // export type CssProps = StyleProps & {[Selector: string]: CssProps | undefined};
 export type CssProps = Collapse<StyleProps | NestedStye>;
+// const CssDeclaration = Z.object({
+//     toString: Z.function(Z.tuple([]), Z.string()),
+//     hash: Z.number(),
+//     values: Z.array(Z.custom<Declaration>()),
+// }).catchall(Z.string()); // DVM 2025 01 19 - not sure how to validate that OTHER keys start with `dta-css-glamor-`
 export type Declaration = CssProps & {hash?: number};
 export type Declarations = Declaration[];
-export type CssAttachable = {
-    [X: `data-${number}`]: string,
-    toString: () => string,
-    hash: number,
-    values: Declarations,
-};
-
+const CssAttachableSchema = Z.object({
+    toString: Z.function(Z.tuple([]), Z.string()),
+    hash: Z.number(),
+    values: Z.array(Z.custom<Declaration>()),
+}).catchall(Z.string()); // DVM 2025 01 19 - not sure how to validate that OTHER keys start with `dta-css-glamor-`
+export type CssAttachable = Z.infer<typeof CssAttachableSchema>;
 export type CssCache = { [K: number]: CssAttachable };
 type Arg3<F> = F extends ((a: any, b: any, c: infer Third, ...z: any) => any) ? Third : never;
 export type RuleOptions = Arg3<typeof createRule>;
@@ -120,15 +128,16 @@ export const groupByType = (obj: Obj) => Object.keys(obj).reduce(
     { media: {} as Obj, supports: {} as Obj, pseudo: {} as Obj, other: {} as Obj } as const
 );
 
+
 /**
  * This pulls out previous declared declarations,
  * flattens them, combines the values by taking the latest (mergeValues),
  * filters out falsy values and groups them in to @media/@support/pseudos and others
  * to give them precendence in the stylesheet
  */
-export const processDeclarations = (declarations: Declarations, cache: CssCache) => {
+export const processDeclarations = (declarations: Array<CssAttachable | Declaration>, cache: CssCache) => {
     const flattened = declarations
-        .map(d => (d && d.hash ? cache[d.hash].values : d))
+        .map(d => (d?.hash ? cache[d.hash].values : d))
         .map(d => (Array.isArray(d) ? mergeValues(flatten(d as Declarations)) : d))
         .filter(Boolean);
 
@@ -204,7 +213,7 @@ export const jss = create(preset());
 // const IS_DEV = process?.env.NODE_ENV !== 'production';
 const IS_DEV = false;
 export const MAX_RULES = 65534;
-export default class Manager {
+export class Manager {
     registry = new SheetsRegistry();
     currentSheet = null as null | StyleSheet<string | number | symbol>;
     rulesCount = 0;
@@ -251,9 +260,10 @@ export default class Manager {
         // Detatch and attach again to make Chrome Dev Tools working
         // Similar to `speedy` from glamor: https://github.com/threepointone/glamor#speedy-mode
         if (IS_DEV) sheet.detach();
+        console.log(hash, declaration, options)
         const rule = sheet.addRule(hash, declaration as JssStyle, options);
         // https://blogs.msdn.microsoft.com/ieinternals/2011/05/14/stylesheet-limits-in-internet-explorer/
-        if (++this.rulesCount % MAX_RULES === 0)
+        if (++this.rulesCount % MAX_RULES === 0) // DVM 2025 01 22 - I think this leaks style sheets, can caus interference for dynamic styles, and doesnt completely solve the issue.  Need to track all the sheets that have been created and know what style is on what sheet. jss internals deep-dive required.
             this.currentSheet = this.createSheet();
 
         if (IS_DEV) sheet.attach();
@@ -279,15 +289,18 @@ jss.use(DataSelectorPlugin);
 // Replace :hover with &:hover, etc.
 jss.use(NormalizePseudoSelectorPlugin);
 
-function cssImpl(...declarations: CssProps[]): undefined | CssAttachable {
+function cssImpl(...declarations: Array<CssAttachable | Declaration>): CssAttachable {
+    const decls = _.compact(_.flatten(declarations as any)) as Array<CssAttachable | Declaration>; // include type in arg definition to cssImpl to hint consumers what to pass - but in reality, support a bunch of whacky legacy usages, defensively.
+    if (!decls?.length || !decls.every(x => CssAttachableSchema.safeParse(x) || CssAttachableSchema.safeParse(x)))
+        throw new Error(`Arguments for the CSS function should each and all be valid CssProps instances.`);
+
     // Second layer of caching
-    const hash = hashify(declarations);
+    const hash = hashify(decls);
 
     // Third layer of caching
     if (hash in cache) return cache[hash];
 
-    if (isFalsy(declarations)) return;
-    const grouped = processDeclarations(declarations, cache);
+    const grouped = processDeclarations(decls, cache);
 
     // Go through all grouped declarations → { media: { '@media (…)': {} }, pseudo: { ':hover': {}, …}
     // Add them as rule with the same name and return the selector by reducing it
@@ -296,7 +309,9 @@ function cssImpl(...declarations: CssProps[]): undefined | CssAttachable {
             const subDecl = grouped[key];
             if (!isEmptyObject(subDecl) && isDeclaration(subDecl)) {
                 const cleanedDecl = cleanup(subDecl);
-                return manager.addRule(hash, cleanedDecl);
+                console.log(cleanedDecl)
+                const pseudo = _.keys(cleanedDecl).length === 1 && _.keys(cleanedDecl)[0].startsWith(':') ? _.keys(cleanedDecl)[0] : undefined;
+                return manager.addRule(pseudo ?? hash, cleanedDecl);
             }
 
             return selector as any & Rule;
@@ -304,32 +319,59 @@ function cssImpl(...declarations: CssProps[]): undefined | CssAttachable {
         ''
     ) as any as Rule & RuleAugmentation;
 
-    return cache[hash] = assignNonEnumerable(
-        { [rule.dataSelector!]: '' },
+    // console.log(rule.dataSelector)
+    // console.log(assignNonEnumerable(
+    //     { [rule.dataSelector!]: '' },
+    //     // Add these properties as non-enumerable so they don't pollute spreading {...css(…)}
+    //     {
+    //         toString: () => rule.classSelector ?? '∫--undefined classSelector--∫',
+    //         hash    : hash,
+    //         values  : declarations,
+    //     },
+    // ))
+    cache[hash] = assignNonEnumerable(
+        { [rule.dataSelector!]: '' }, // WHAT was this for?  empty string????
         // Add these properties as non-enumerable so they don't pollute spreading {...css(…)}
         {
             toString: () => rule.classSelector ?? '∫--undefined classSelector--∫',
             hash    : hash,
-            values  : declarations,
+            values  : decls,
         },
     );
+    CssAttachableSchema.parse(cache[hash]); // parse to verify schema, BUT DO NOT RETURN PARSED RESULT - want original object reference, with original property metadata like enumerability
+    return cache[hash];
 }
 
 let animationCount = 0;
 
 // First layer of caching
 export const css = Object.assign(
-    memoize(cssImpl), // only works if consumers retain the ACTUAL object with declarations - which is rare, often decls are inline in a funciton component and not memoized
+    memoize(cssImpl), // only works if consumers retain the ACTUAL object with declarations - which is rare, often Declarations are inline in a funciton component and not memoized
     {
-        keyframes: (name: string, declarations: CssProps) => {
+        keyframes: (name: string | CssProps, declarations: CssProps | undefined = undefined) => {
             if (typeof name !== 'string') {
                 declarations = name;
                 name = 'animation';
             }
-        
+
+            if (!name?.length)
+                name = 'animation';
+
+            declarations ??= {};
             const uniqueName = `${name}-${animationCount++}`;
             manager.addRule(`@keyframes ${uniqueName}`, declarations);
             return uniqueName;
         }
-    }
+    },
+    jss,
+    // as { SheetsRegistry, create, createRule, StyleSheet, Rule, JssStyle };
+    DefaultPreset
 );
+
+export const TEST_ACCESS = {
+    renderToString,
+    reset,
+    Manager,
+    MAX_RULES,
+    assignNonEnumerable,
+};
