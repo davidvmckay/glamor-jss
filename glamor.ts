@@ -86,8 +86,8 @@ const mergeDeep = (...objects: Obj[]) => objects.reduce((prev, curr) => {
 
 /** Is it definitely an object, and also an object with zero enumerable keys? */
 export const isEmptyObject = (obj: Obj) => {
-    if (typeof obj !== 'object') return false;
-    for (const _ in obj) return false;
+    if (typeof obj !== 'object') return false; // true if it is indeed an object of some kind
+    for (const _ in obj) return false; // true if iterating the contents of that object does nothing -- note, this formula will work on pojos and arrays, as well as many more complex objects
     return true;
 }
 
@@ -100,30 +100,30 @@ export const isFalsy = (value: any) =>
 
 /** Deletes falsy values from Declarations recursively. */
 export const cleanup = (decl: Declaration) => {
-    for (const k in Object.keys(decl)) {
-        // TODO: validate these casts?
-        if (isFalsy(decl[k as keyof Declaration])) {
-            delete decl[k as keyof Declaration];
-            continue;
-        }
+    if (!isObject(decl))
+        return decl;
 
-        if (isDeclaration((decl as NestedStye)[k]))
-            cleanup((decl as NestedStye)[k]!);
+    for (const k of Object.keys(decl)) {
+        if (isFalsy(decl[k as keyof Declaration]))
+            delete decl[k as keyof Declaration];
+        else if (isDeclaration((decl as NestedStye)[k as keyof NestedStye]))
+            cleanup((decl as NestedStye)[k as keyof NestedStye] as Declaration);
     }
 
     return decl;
 };
 
-export const groupByType = (obj: Obj) => Object.keys(obj).reduce(
-    (prev, curr) => {
-        let key: keyof typeof prev = 'other';
-        if (curr.indexOf('@supports') === 0) key = 'supports';
-        else if (curr.indexOf('@media') === 0) key = 'media';
-        else if (curr.indexOf(':') === 0 || curr.indexOf('&:') === 0)
-            key = 'pseudo';
+export const groupByType = (jssFrag: Obj) => Object.keys(jssFrag).reduce(
+    (groups, selector: string & keyof typeof jssFrag) => {
+        const groupType: keyof typeof groups
+            = selector.indexOf('@supports'  ) === 0 ? 'supports'
+            : selector.indexOf('@media'     ) === 0 ? 'media'
+            : selector.indexOf(':'          ) === 0
+            || selector.indexOf('&:'        ) === 0 ? 'pseudo'
+            :                                         'other';
 
-        prev[key][curr] = obj[curr as keyof typeof obj];
-        return prev;
+        groups[groupType][selector] = jssFrag[selector];
+        return groups;
     },
     { media: {} as Obj, supports: {} as Obj, pseudo: {} as Obj, other: {} as Obj } as const
 );
@@ -188,16 +188,19 @@ const NormalizePseudoSelectorPlugin = {
 //  DATA-SELECTOR
 //  --------------------
 
-const isDataSelector = (name: string) => /\[data-css-.+\]/.test(name);
+const isDataSelector = (name: string) => /\[data-jss-.+\]/.test(name);
 export const DataSelectorPlugin = {
     onProcessRule: (rule: Rule & RuleAugmentation) => {
-        const { selectorText, type, options: { parent } } = rule;
+        let { selectorText, type, options: { parent } } = rule;
+        selectorText = selectorText?.replaceAll('\\', '');
         if (type === 'style' && !(parent as Rule).type && !isDataSelector(selectorText??'')) {
             // MOTE: individual assignments instead of Object.assign.... probably due to setters.
             rule.originalSelectorText = selectorText;
             rule.classSelector = selectorText?.substring(1)??'';
             rule.dataSelector = `data-${rule.classSelector}`;
-            rule.selectorText = `${selectorText}, [${rule.dataSelector}]`;
+            let [ds, dsPseudo] = rule.dataSelector.split('::');
+            if (!dsPseudo && ds.includes(':')) [ds, dsPseudo] = rule.dataSelector.split(':');
+            rule.selectorText = `${selectorText}, ${[`[${ds}]`, `${dsPseudo??''}`].join(':')}`;
         }
 
         return rule;
@@ -220,13 +223,13 @@ export class Manager {
     sheetCount = 0;
     options = {
         sheetPrefix: 'glamor-jss',
-        classNamePrefix: 'css',
+        classNamePrefix: 'jss',
     };
 
     constructor(options = {}) {
         this.options = {
             sheetPrefix: 'glamor-jss',
-            classNamePrefix: 'css',
+            classNamePrefix: 'jss',
             ...options,
         };
     }
@@ -260,10 +263,9 @@ export class Manager {
         // Detatch and attach again to make Chrome Dev Tools working
         // Similar to `speedy` from glamor: https://github.com/threepointone/glamor#speedy-mode
         if (IS_DEV) sheet.detach();
-        console.log(hash, declaration, options)
         const rule = sheet.addRule(hash, declaration as JssStyle, options);
         // https://blogs.msdn.microsoft.com/ieinternals/2011/05/14/stylesheet-limits-in-internet-explorer/
-        if (++this.rulesCount % MAX_RULES === 0) // DVM 2025 01 22 - I think this leaks style sheets, can caus interference for dynamic styles, and doesnt completely solve the issue.  Need to track all the sheets that have been created and know what style is on what sheet. jss internals deep-dive required.
+        if (++this.rulesCount % MAX_RULES === 0) // DVM 2025 01 22 - I think this leaks style sheets, can cause interference for dynamic styles, and doesn't completely solve the issue.  Need to track all the sheets that have been created and know what style is on what sheet. jss internals deep-dive required.
             this.currentSheet = this.createSheet();
 
         if (IS_DEV) sheet.attach();
@@ -290,7 +292,7 @@ jss.use(DataSelectorPlugin);
 jss.use(NormalizePseudoSelectorPlugin);
 
 function cssImpl(...declarations: Array<CssAttachable | Declaration>): CssAttachable {
-    const decls = _.compact(_.flatten(declarations as any)) as Array<CssAttachable | Declaration>; // include type in arg definition to cssImpl to hint consumers what to pass - but in reality, support a bunch of whacky legacy usages, defensively.
+    const decls = _.compact(_.flatten(declarations as any[])) as Array<CssAttachable | Declaration>; // include type in arg definition to cssImpl to hint consumers what to pass - but in reality, support a bunch of whacky legacy usages, defensively.
     if (!decls?.length || !decls.every(x => CssAttachableSchema.safeParse(x) || CssAttachableSchema.safeParse(x)))
         throw new Error(`Arguments for the CSS function should each and all be valid CssProps instances.`);
 
@@ -305,16 +307,33 @@ function cssImpl(...declarations: Array<CssAttachable | Declaration>): CssAttach
     // Go through all grouped declarations → { media: { '@media (…)': {} }, pseudo: { ':hover': {}, …}
     // Add them as rule with the same name and return the selector by reducing it
     const rule = (['other', 'pseudo', 'media', 'supports'] as const).reduce(
-        (selector, key) => {
-            const subDecl = grouped[key];
+        (rule, selectorGroupType) => {
+            const subDecl = cleanup(grouped[selectorGroupType]);
             if (!isEmptyObject(subDecl) && isDeclaration(subDecl)) {
-                const cleanedDecl = cleanup(subDecl);
-                console.log(cleanedDecl)
-                const pseudo = _.keys(cleanedDecl).length === 1 && _.keys(cleanedDecl)[0].startsWith(':') ? _.keys(cleanedDecl)[0] : undefined;
-                return manager.addRule(pseudo ?? hash, cleanedDecl);
+                if (selectorGroupType === 'other')
+                    return manager.addRule(hash, subDecl);
+                
+                if (Object.keys(subDecl).length !== 1 && selectorGroupType !== 'pseudo')
+                    throw new Error(`this is unexpected - ${selectorGroupType} - ${Object.keys(subDecl)}`);
+
+                const pseudos = Object.keys(subDecl).filter(x =>  x.includes(':'));
+                const others  = Object.keys(subDecl).filter(x => !x.includes(':'));
+                let res = undefined;
+                for (const pseudo of pseudos)
+                    res = manager.addRule(hash + pseudo, subDecl[pseudo as keyof typeof subDecl] as any);
+                
+                for (const other of others)
+                    res = manager.addRule(hash + other, subDecl[other as keyof typeof subDecl] as any);
+                
+                return res;
+                // const [pseudo] = Object.keys(subDecl);
+            
+                // return pseudo.includes(':')
+                //     ? 
+                //     : manager.addRule(hash, subDecl as any);
             }
 
-            return selector as any & Rule;
+            return rule as any & Rule;
         },
         ''
     ) as any as Rule & RuleAugmentation;

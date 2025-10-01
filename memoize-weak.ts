@@ -1,4 +1,4 @@
-const isPrimitive = (value: unknown) => ((typeof value !== 'object') && (typeof value !== 'function')) || (value === null);
+const isCompound = (value: unknown): value is object => value !== undefined && value !== null && ['object', 'function'].includes(typeof value);
 
 class MapTree {
     private childBranches = new WeakMap();
@@ -7,12 +7,12 @@ class MapTree {
     value = undefined as object | undefined;
 
     has = (key: object) => {
-        const keyObject = (isPrimitive(key) ? this.primitiveKeys.get(key) : key);
+        const keyObject = (!isCompound(key) ? this.primitiveKeys.get(key) : key);
         return (keyObject ? this.childBranches.has(keyObject) : false);
     };
 
     get = (key: object) => {
-        const keyObject = (isPrimitive(key) ? this.primitiveKeys.get(key) : key);
+        const keyObject = (!isCompound(key) ? this.primitiveKeys.get(key) : key);
         return (keyObject ? this.childBranches.get(keyObject) : undefined);
     };
 
@@ -32,7 +32,7 @@ class MapTree {
     };
 
     createKey = (key: object) => {
-        if (!isPrimitive(key)) 
+        if (isCompound(key)) 
             return key;
 
         const keyObject = {};
@@ -48,7 +48,7 @@ class MapTree {
             this.value = undefined;
         } else if (args.length === 1) {
             const key = args[0];
-            if (isPrimitive(key)) {
+            if (isCompound(key)) {
                 const keyObject = this.primitiveKeys.get(key);
                 if (keyObject) {
                     this.childBranches.delete(keyObject);

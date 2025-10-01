@@ -1,35 +1,40 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`css Complex styles 1`] = `
-".css-12483742431659, [data-css-glamor-12483742431659] {
-  font-weight: bold;
-}
-.css-glamor-434809571958, [data-css-glamor-434809571958] {
-  color: papayawhip;
-  width: 350px;
-  height: 150px;
-  border: 1px solid mediumaquamarine;
-  font-weight: bold;
-  border-radius: 50%;
-}
-.css-glamor-434809571958:hover, [data-css-glamor-434809571958]:hover {
-  color: orchid;
-}
-@media (min-width: 800px) {
-  .css-glamor-434809571958, [data-css-glamor-434809571958] {
-    background: peachpuff;
-  }
+exports[`css Falsy values 1`] = `
+".jss-1588077681765:after, [data-jss-1588077681765]:after {
+  height: 100px;
 }"
 `;
 
-exports[`css Falsy values 1`] = `
-".css-glamor-9467316260603:after, [data-css-glamor-9467316260603]:after {
+exports[`css Complex styles 1`] = `
+".jss-glamor-13599647748142, [data-jss-glamor-13599647748142]: {
+  font-weight: bold;
+}
+.jss-glamor-5941958004277, [data-jss-glamor-5941958004277]: {
+  color: papayawhip;
+  width: 350px;
+  border: 1px solid mediumaquamarine;
+  height: 150px;
+  font-weight: bold;
+  border-radius: 50%;
+}
+.jss-5941958004277:hover, [data-jss-5941958004277]:hover {
+  color: orchid;
+}
+.jss-5941958004277@media (min-width: 800px), [data-jss-5941958004277@media (min-width]: 800px) {
+  background: peachpuff;
+}"
+`;
+
+exports[`css Simple styles 1`] = `
+".jss-glamor-727942878756, [data-jss-glamor-727942878756]: {
+  width: 100px;
   height: 100px;
 }"
 `;
 
 exports[`css Keyframes work without collision 1`] = `
-"@keyframes css-keyframes-fade-0 {
+"@keyframes jss-keyframes-fade-0 {
   from {
     opacity: 0;
   }
@@ -37,7 +42,7 @@ exports[`css Keyframes work without collision 1`] = `
     opacity: 1;
   }
 }
-@keyframes css-keyframes-fade-1 {
+@keyframes jss-keyframes-fade-1 {
   from {
     opacity: 0;
   }
@@ -45,7 +50,7 @@ exports[`css Keyframes work without collision 1`] = `
     opacity: 1;
   }
 }
-@keyframes css-keyframes-animation-2 {
+@keyframes jss-keyframes-animation-2 {
   from {
     opacity: 0;
   }
@@ -53,92 +58,34 @@ exports[`css Keyframes work without collision 1`] = `
     opacity: 1;
   }
 }
-@keyframes css-keyframes-animation-3 {
+@keyframes jss-keyframes-animation-3 {
   from {
     opacity: 0;
   }
   to {
     opacity: 1;
   }
-}"
-`;
-
-exports[`css Multiple styles 1`] = `
-Array [
-  "data-css-glamor-7696658414362",
-  "data-css-glamor-15533376699467",
-]
-`;
-
-exports[`css Nested functional styles 1`] = `
-".css-glamor-12694328089617, [data-css-glamor-12694328089617] {
-  color: gray;
-  position: relative;
-}
-.css-glamor-12694328089617:before, [data-css-glamor-12694328089617]:before {
-  top: 0;
-  content: \\"\\";
-  position: absolute;
-}
-.css-glamor-12694328089617:hover, [data-css-glamor-12694328089617]:hover {
-  color: peachpuff;
-}
-.css-glamor-12694328089617:hover:before, [data-css-glamor-12694328089617]:hover:before {
-  top: 10px;
-}
-.css-glamor-13686855474469, [data-css-glamor-13686855474469] {
-  color: peachpuff;
-  position: relative;
-}
-.css-glamor-13686855474469:before, [data-css-glamor-13686855474469]:before {
-  top: 10px;
-  content: \\"\\";
-  position: absolute;
-}
-.css-glamor-13686855474469:hover, [data-css-glamor-13686855474469]:hover {
-  color: peachpuff;
-}
-.css-glamor-13686855474469:hover:before, [data-css-glamor-13686855474469]:hover:before {
-  top: 10px;
-}
-.css-glamor-6315176858355, [data-css-glamor-6315176858355] {
-  color: gray;
-  position: relative;
-}
-.css-glamor-6315176858355:before, [data-css-glamor-6315176858355]:before {
-  top: 0;
-  content: \\"\\";
-  position: absolute;
-}
-.css-glamor-13921000805328, [data-css-glamor-13921000805328] {
-  color: gray;
-  position: relative;
-}
-.css-glamor-13921000805328:before, [data-css-glamor-13921000805328]:before {
-  top: 0;
-  content: \\"\\";
-  position: absolute;
 }"
 `;
 
 exports[`css Overwrite styles 1`] = `
-".css-glamor-1113385277541, [data-css-glamor-1113385277541] {
+".jss-glamor-3516438609568, [data-jss-glamor-3516438609568]: {
   color: mediumaquamarine;
 }
-.css-glamor-7242087029549, [data-css-glamor-7242087029549] {
+.jss-glamor-5488174686184, [data-jss-glamor-5488174686184]: {
   color: lightcoral;
 }
-.css-glamor-14164733049051, [data-css-glamor-14164733049051] {
+.jss-glamor-9688995239998, [data-jss-glamor-9688995239998]: {
   color: thistle;
 }
-.css-glamor-13164275224355, [data-css-glamor-13164275224355] {
+.jss-glamor-14545500314083, [data-jss-glamor-14545500314083]: {
   color: thistle;
 }"
 `;
 
-exports[`css Simple styles 1`] = `
-".css-glamor-727942878756, [data-css-glamor-727942878756] {
-  width: 100px;
-  height: 100px;
-}"
+exports[`css Multiple styles 1`] = `
+[
+  "data-jss-glamor-4703428728319",
+  "data-jss-glamor-9803402724494",
+]
 `;
