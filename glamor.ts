@@ -4,12 +4,11 @@ import preset from 'jss-preset-default';
 import hashify from 'hash-it';
 import { memoize } from './memoize-weak';
 import type * as CSS from 'csstype';
+import * as µ from 'm-dash';
+
 export type * as CSS from 'csstype'
 export * as JssCore from 'jss';
-import * as Z from 'zod';
-import * as _ from 'lodash';
 export const DefaultPreset = preset;
-
 export const hash = hashify;
 
 
@@ -36,19 +35,19 @@ type StyleProps = Collapse<Partial<JssStyle | CSS.Properties>>;
 type NestedStye = {[Selector: string]: StyleProps | undefined};
 // export type CssProps = StyleProps & {[Selector: string]: CssProps | undefined};
 export type CssProps = Collapse<StyleProps | NestedStye>;
-// const CssDeclaration = Z.object({
-//     toString: Z.function(Z.tuple([]), Z.string()),
-//     hash: Z.number(),
-//     values: Z.array(Z.custom<Declaration>()),
-// }).catchall(Z.string()); // DVM 2025 01 19 - not sure how to validate that OTHER keys start with `dta-css-glamor-`
+// const CssDeclaration = µ.Z.object({
+//     toString: µ.Z.function(µ.Z.tuple([]), µ.Z.string()),
+//     hash: µ.Z.number(),
+//     values: µ.Z.array(µ.Z.custom<Declaration>()),
+// }).catchall(µ.Z.string()); // DVM 2025 01 19 - not sure how to validate that OTHER keys start with `dta-css-glamor-`
 export type Declaration = CssProps & {hash?: number};
 export type Declarations = Declaration[];
-const CssAttachableSchema = Z.object({
-    toString: Z.function(Z.tuple([]), Z.string()),
-    hash: Z.number(),
-    values: Z.array(Z.custom<Declaration>()),
-}).catchall(Z.string()); // DVM 2025 01 19 - not sure how to validate that OTHER keys start with `dta-css-glamor-`
-export type CssAttachable = Z.infer<typeof CssAttachableSchema>;
+const CssAttachableSchema = µ.Z.object({
+    toString: µ.Z.function({input: µ.Z.tuple([]), output: µ.Z.string()}),
+    hash: µ.Z.number(),
+    values: µ.Z.array(µ.Z.custom<Declaration>()),
+}).catchall(µ.Z.string()); // DVM 2025 01 19 - not sure how to validate that OTHER keys start with `dta-css-glamor-`
+export type CssAttachable = µ.Z.infer<typeof CssAttachableSchema>;
 export type CssCache = { [K: number]: CssAttachable };
 type Arg3<F> = F extends ((a: any, b: any, c: infer Third, ...z: any) => any) ? Third : never;
 export type RuleOptions = Arg3<typeof createRule>;
@@ -291,8 +290,8 @@ jss.use(DataSelectorPlugin);
 // Replace :hover with &:hover, etc.
 jss.use(NormalizePseudoSelectorPlugin);
 
-function cssImpl(...declarations: Array<CssAttachable | Declaration>): CssAttachable {
-    const decls = _.compact(_.flatten(declarations as any[])) as Array<CssAttachable | Declaration>; // include type in arg definition to cssImpl to hint consumers what to pass - but in reality, support a bunch of whacky legacy usages, defensively.
+function cssImpl(...declarations: Array<CssAttachable | Declaration | Nil>): CssAttachable {
+    const decls = µ._.compact(µ._.flatten(declarations as any[])) as Array<CssAttachable | Declaration>; // include type in arg definition to cssImpl to hint consumers what to pass - but in reality, support a bunch of whacky legacy usages, defensively.
     if (!decls?.length || !decls.every(x => CssAttachableSchema.safeParse(x) || CssAttachableSchema.safeParse(x)))
         throw new Error(`Arguments for the CSS function should each and all be valid CssProps instances.`);
 

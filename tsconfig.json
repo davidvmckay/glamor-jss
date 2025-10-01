@@ -31,11 +31,12 @@
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
         "isolatedModules": true,
+        
+        "types": ["./node_modules/m-dash/ambient.d.ts"],
     },
     "include": [
         "./memoize-weak.ts",
-        "glamor.ts",
-        "./vite.config.js"
+        "glamor.ts"
     ]
 }
 

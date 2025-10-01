@@ -11,7 +11,7 @@ const assertThrows = <F extends AnyFunc>(fn: F, expectedMessage: string) => {
     try {
         css();
         expect(`didNotThrow`).toStrictEqual('UNREACHABLE ASSERTION');
-    } catch(err) {
+    } catch(err : any) {
         errorMessage = err.message;
     }
     expect(errorMessage).toStrictEqual(expectedMessage);
@@ -85,7 +85,7 @@ describe('css', () => {
             // '::before': { top: 10 },
         };
 
-        const style = hover => css({
+        const style = (hover: boolean) => css({
             position: 'relative',
             color: 'gray',
             // '::before': {
@@ -96,7 +96,7 @@ describe('css', () => {
             ':hover': hover && activeStyle,
         });
 
-        const styles = toggle => css(style(toggle), toggle && activeStyle);
+        const styles = (toggle: boolean) => css(style(toggle), toggle ? activeStyle : undefined);
         expect(styles(true)).toEqual({ 'data-jss-13686855474469': '' } as any);
         expect(styles(false)).toEqual({ 'data-jss-13921000805328': '' } as any);
         expect(renderToString()).toMatchSnapshot();
@@ -139,7 +139,7 @@ describe('css', () => {
         ];
 
         expect(css({ color: 'red' })).toBe(css({ color: 'red' }));
-        expect(css({ width: y => y + 1 })).toEqual(css({ width: y => y + 1 }));
+        expect(css({ width: (y: number) => y + 1 })).toEqual(css({ width: (y: number) => y + 1 }));
         expect(css(...complex)).toBe(css(...complex));
     });
 

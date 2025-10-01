@@ -1,33 +1,32 @@
 {
-  "name": "glamor-jss",
-  "version": "1.0.4",
-  "description": "Use JSS in glamor style",
-  "license": "UNLICENSED",
-  "type": "module",
-  "main": "src.ts",
-  "author": {
-    "name": "David V. McKay",
-    "email": "david.v.mckay@gmail.com"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/davidvmckay/glamor-jss"
-  },
-  "files": [
-    "memoize-weak.ts",
-    "glamor.ts"
-  ],
-  "dependencies": {
-    "hash-it": "6.0.0",
-    "jss": "^10.9.2",
-    "jss-preset-default": "10.9.2",
-    "lodash": "^4.17.21",
-    "zod": "^3.24.1"
-  },
-  "devDependencies": {
-    "@types/bun": "latest",
-    "@types/lodash": "^4.17.14",
-    "csstype": "^3.1.3",
-    "typescript": "^5.7.3"
-  }
+    "name": "@masterpiece-flower-company/glamor-jss",
+    "version": "0.0.1",
+    "description": "Use JSS in glamor style",
+    "license": "UNLICENSED",
+    "repository": { "type": "git", "url": "https://github.com/davidvmckay/glamor-jss" },
+    "author": { "name": "David V. McKay", "email": "david.v.mckay@gmail.com" },
+    "homepage": "http://github.com/masterpiece-flower-company/glamnor-jss",
+    "type": "module",
+    "module": "glamor.ts",
+    "exports": { ".": "./glamor.ts" },
+        "publishConfig": {
+                "access": "restricted",
+                "registry": "https://npm.pkg.github.com"
+        },
+        "pseudo-comments": {
+                "publishing to github package registry": "bun publish"
+        },
+    "dependencies": {
+        "csstype": "^3.1.3",
+        "hash-it": "6.0.0",
+        "jss": "^10.9.2",
+        "jss-preset-default": "10.9.2",
+        "m-dash": "npm:@masterpiece-flower-company/m-dash@latest"
+    },
+    "peerDependencies": {
+        "@types/bun": "latest",
+        "@types/lodash": "4.17.20",
+        "@types/luxon": "3.7.1",
+        "typescript": "^5"
+    }
 }
