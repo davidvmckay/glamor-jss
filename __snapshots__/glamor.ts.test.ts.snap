@@ -1,28 +1,62 @@
 // Bun Snapshot v1, https://bun.sh/docs/test/snapshots
 
-exports[`css Falsy values 1`] = `
-".jss-1588077681765:after, [data-jss-1588077681765]:after {
-  height: 100px;
+exports[`css Nested functional styles 1`] = `
+".jss-glamor-5306129458133, [data-jss-glamor-5306129458133]: {
+  color: gray;
+  position: relative;
+}
+.jss-5306129458133:hover, [data-jss-5306129458133]:hover {
+  color: peachpuff;
+}
+.jss-5306129458133:hover, [data-jss-5306129458133]:hover {
+  color: peachpuff;
+}
+.jss-glamor-2388246972218, [data-jss-glamor-2388246972218]: {
+  color: peachpuff;
+  position: relative;
+}
+.jss-2388246972218:hover, [data-jss-2388246972218]:hover {
+  color: peachpuff;
+}
+.jss-2388246972218:hover, [data-jss-2388246972218]:hover {
+  color: peachpuff;
+}
+.jss-2388246972218::before, [data-jss-2388246972218]:before {
+  top: 10px;
 }"
 `;
 
-exports[`css Complex styles 1`] = `
-".jss-glamor-13599647748142, [data-jss-glamor-13599647748142]: {
-  font-weight: bold;
+exports[`css Nested functional styles 2`] = `
+".jss-glamor-5306129458133, [data-jss-glamor-5306129458133]: {
+  color: gray;
+  position: relative;
 }
-.jss-glamor-5941958004277, [data-jss-glamor-5941958004277]: {
-  color: papayawhip;
-  width: 350px;
-  border: 1px solid mediumaquamarine;
-  height: 150px;
-  font-weight: bold;
-  border-radius: 50%;
+.jss-5306129458133:hover, [data-jss-5306129458133]:hover {
+  color: peachpuff;
 }
-.jss-5941958004277:hover, [data-jss-5941958004277]:hover {
-  color: orchid;
+.jss-5306129458133:hover, [data-jss-5306129458133]:hover {
+  color: peachpuff;
 }
-.jss-5941958004277@media (min-width: 800px), [data-jss-5941958004277@media (min-width]: 800px) {
-  background: peachpuff;
+.jss-glamor-2388246972218, [data-jss-glamor-2388246972218]: {
+  color: peachpuff;
+  position: relative;
+}
+.jss-2388246972218:hover, [data-jss-2388246972218]:hover {
+  color: peachpuff;
+}
+.jss-2388246972218:hover, [data-jss-2388246972218]:hover {
+  color: peachpuff;
+}
+.jss-2388246972218::before, [data-jss-2388246972218]:before {
+  top: 10px;
+}
+.jss-glamor-2919814881976, [data-jss-glamor-2919814881976]: {
+  color: gray;
+  position: relative;
+}
+.jss-glamor-14276384371177, [data-jss-glamor-14276384371177]: {
+  color: gray;
+  position: relative;
 }"
 `;
 
@@ -65,6 +99,32 @@ exports[`css Keyframes work without collision 1`] = `
   to {
     opacity: 1;
   }
+}"
+`;
+
+exports[`css Falsy values 1`] = `
+".jss-1588077681765:after, [data-jss-1588077681765]:after {
+  height: 100px;
+}"
+`;
+
+exports[`css Complex styles 1`] = `
+".jss-glamor-13599647748142, [data-jss-glamor-13599647748142]: {
+  font-weight: bold;
+}
+.jss-glamor-5941958004277, [data-jss-glamor-5941958004277]: {
+  color: papayawhip;
+  width: 350px;
+  border: 1px solid mediumaquamarine;
+  height: 150px;
+  font-weight: bold;
+  border-radius: 50%;
+}
+.jss-5941958004277:hover, [data-jss-5941958004277]:hover {
+  color: orchid;
+}
+.jss-5941958004277@media (min-width: 800px), [data-jss-5941958004277@media (min-width]: 800px) {
+  background: peachpuff;
 }"
 `;
 

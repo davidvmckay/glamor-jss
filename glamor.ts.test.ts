@@ -79,10 +79,10 @@ describe('css', () => {
         expect(renderToString()).toMatchSnapshot();
     });
 
-    test.skip('Nested functional styles', () => { // Nested things might be broken righ now
+    test('Nested functional styles', () => { // Nested things might be broken righ now
         const activeStyle = {
             color: 'peachpuff',
-            // '::before': { top: 10 },
+            '::before': { top: 10 },
         };
 
         const style = (hover: boolean) => css({
@@ -97,8 +97,11 @@ describe('css', () => {
         });
 
         const styles = (toggle: boolean) => css(style(toggle), toggle ? activeStyle : undefined);
-        expect(styles(true)).toEqual({ 'data-jss-13686855474469': '' } as any);
-        expect(styles(false)).toEqual({ 'data-jss-13921000805328': '' } as any);
+        // expect(styles(true)).toEqual({ 'data-jss-13686855474469': '' } as any);
+        styles(true);
+        expect(renderToString()).toMatchSnapshot();
+        styles(false);
+        // expect(styles(false)).toEqual({ 'data-jss-13921000805328': '' } as any);
         expect(renderToString()).toMatchSnapshot();
     });
 
