@@ -1,6 +1,6 @@
 {
     "name": "@masterpiece-flower-company/glamor-jss",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "description": "Use JSS in glamor style",
     "license": "UNLICENSED",
     "repository": { "type": "git", "url": "https://github.com/davidvmckay/glamor-jss" },
